@@ -2981,8 +2981,6 @@ static enum fsm_event bc_event(struct port *p, int fd_index)
 		msg_put(msg);
 		return EV_NONE;
 	}
-	pr_err("DEBUUG msg_sots_missing(msg): %d p->timestamping: %d msg_type(msg): %d", msg_sots_missing(msg), p->timestamping, msg_type(msg));
-	pr_err("DEBUUG msg->hwts.ts.ns: %lld", msg->hwts.ts.ns);
 	if (msg_sots_missing(msg) &&
 	    !(p->timestamping == TS_P2P1STEP && msg_type(msg) == PDELAY_REQ)) {
 		pr_err("%s: received %s without timestamp",
