@@ -190,6 +190,13 @@ disable the delay response timeout.
 The default is 0 or disabled.
 
 .TP
+.B dynamic_rx_hwts
+Enable dynamic updates of rx_filter during PTP sync. Some Ethernet controllers
+doesn't support PTP event packets, thus they must be provided with correct
+rx_filter for timestamping required packets depends on PTP sync stage.
+The default is 0 or disabled.
+
+.TP
 .B egressLatency
 Specifies the difference in nanoseconds between the actual transmission
 time at the reference plane and the reported transmit time stamp. This

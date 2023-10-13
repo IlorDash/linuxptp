@@ -171,6 +171,8 @@ extern int sk_tx_timeout;
  */
 extern int sk_check_fupsync;
 
+extern int sk_dynamic_rx_hwts;
+
 /**
  * Hardware time-stamp setting mode
  */

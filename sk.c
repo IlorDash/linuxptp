@@ -41,6 +41,8 @@
 
 int sk_tx_timeout = 1;
 int sk_check_fupsync;
+int sk_tx_type = -1;
+int sk_dynamic_rx_hwts = 0;
 enum hwts_filter_mode sk_hwts_filter_mode = HWTS_FILTER_NORMAL;
 
 /* private methods */
@@ -131,11 +133,51 @@ static int hwts_init(int fd, const char *device, int rx_filter,
 		pr_err("The current filter does not match the required");
 		return -1;
 	}
-
+	sk_tx_type = cfg.tx_type;
 	return 0;
 }
 
 /* public methods */
+
+int hwts_update_rx(int fd, const char *device, int rx_filter, int rx_filter2) {
+        struct ifreq ifreq;
+	struct hwtstamp_config cfg;
+	int orig_rx_filter;
+	int err;
+
+	init_ifreq(&ifreq, &cfg, device);
+
+        if (sk_hwts_filter_mode != HWTS_FILTER_CHECK) {
+                cfg.rx_filter = orig_rx_filter = rx_filter;
+                err = ioctl(fd, SIOCSHWTSTAMP, &ifreq);
+                if (err < 0) {
+                        pr_info("driver rejected most general HWTSTAMP filter");
+
+                        init_ifreq(&ifreq, &cfg, device);
+                        cfg.tx_type = sk_tx_type;
+                        cfg.rx_filter = orig_rx_filter = rx_filter2;
+
+                        err = ioctl(fd, SIOCSHWTSTAMP, &ifreq);
+                        if (err < 0) {
+                                pr_err("ioctl SIOCSHWTSTAMP failed: %m");
+                                return err;
+                        }
+                }
+        }
+
+        if (cfg.tx_type != sk_tx_type ||
+	    (cfg.rx_filter != rx_filter &&
+	     cfg.rx_filter != rx_filter2 &&
+	     cfg.rx_filter != HWTSTAMP_FILTER_ALL)) {
+		pr_debug("tx_type   %d not %d", cfg.tx_type, tx_type);
+		pr_debug("rx_filter %d not %d or %d", cfg.rx_filter, rx_filter,
+			 rx_filter2);
+		pr_err("The current filter does not match the required");
+		return -1;
+	}
+
+	return 0;
+}
 
 int sk_interface_fd(void)
 {
