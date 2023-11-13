@@ -147,6 +147,19 @@ int sk_get_error(int fd);
 int sk_set_priority(int fd, int family, uint8_t dscp);
 
 /**
+ * If sk_adv_rx_filter is set, then handle XXX_SYNC and
+ * XXX_DELAY_REQ hwtstamp_rx_filters.
+ * @param fd          An open socket.
+ * @param device      The name of the network interface to configure.
+ * @param type        The requested flavor of time stamping.
+ * @param transport   The type of transport used.
+ * @param is_master   Is current port state is Master.
+ * @return            Zero on success, non-zero otherwise.
+ */
+int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
+			   enum transport_type transport, bool is_master);
+
+/**
  * Enable time stamping on a given network interface.
  * @param fd          An open socket.
  * @param device      The name of the network interface to configure.
@@ -170,6 +183,8 @@ extern int sk_tx_timeout;
  * follow up messages using their network stack receipt time stamps.
  */
 extern int sk_check_fupsync;
+
+extern int sk_adv_rx_filter;
 
 /**
  * Hardware time-stamp setting mode

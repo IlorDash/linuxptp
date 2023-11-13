@@ -143,6 +143,14 @@ See UNICAST DISCOVERY OPTIONS, below.
 .SH PORT OPTIONS
 
 .TP
+.B adv_rx_filter
+Enable support of HWTSTAMP_FILTER_PTP_XX_SYNC and HWTSTAMP_FILTER_PTP_XX_DELAY_REQ.
+Some Ethernet controllers doesn't support PTP event packets,
+thus they must be provided with correct rx_filter for timestamping required packets
+(SYNC or DELAY_REQ) depends on whether it's Slave or Master respectively.
+The default is 0 or disabled.
+
+.TP
 .B announceReceiptTimeout
 The number of missed Announce messages before the last Announce messages
 expires.

@@ -3526,6 +3526,23 @@ int port_state_update(struct port *p, enum fsm_event event, int mdiff)
 		p->unicast_state_dirty = true;
 	}
 	if (next != p->state) {
+		if (sk_adv_rx_filter == 1) {
+			pr_debug("port state update prev %d next %d", p->state,
+				 next);
+
+			if ((next == PS_MASTER) || (next == PS_GRAND_MASTER))
+				transport_update_rx_filter(p->trp, p->iface,
+							   &p->fda,
+							   p->timestamping,
+							   true);
+
+			if (next == PS_UNCALIBRATED)
+				transport_update_rx_filter(p->trp, p->iface,
+							   &p->fda,
+							   p->timestamping,
+							   false);
+		}
+
 		port_show_transition(p, next, event);
 		p->state = next;
 		port_notify_event(p, NOTIFY_PORT_STATE);

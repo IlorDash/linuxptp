@@ -208,6 +208,19 @@ no_event:
 	return -1;
 }
 
+static int udp_update_rx_filter(struct interface *iface, struct fdarray *fda,
+				enum timestamp_type ts_type, bool is_master)
+{
+	int err;
+	const char *name;
+
+	name = interface_label(iface);
+	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
+				     TRANS_UDP_IPV4, is_master);
+
+	return err;
+}
+
 static int udp_recv(struct transport *t, int fd, void *buf, int buflen,
 		    struct address *addr, struct hw_timestamp *hwts)
 {
@@ -302,6 +315,7 @@ struct transport *udp_transport_create(void)
 		return NULL;
 	udp->t.close = udp_close;
 	udp->t.open  = udp_open;
+	udp->t.update_rx_filter = udp_update_rx_filter;
 	udp->t.recv  = udp_recv;
 	udp->t.send  = udp_send;
 	udp->t.release = udp_release;
