@@ -1065,7 +1065,7 @@ int clock_required_modes(struct clock *c)
 }
 
 struct clock *clock_create(enum clock_type type, struct config *config,
-			   const char *phc_device)
+			   const char *phc_device, enum hwts_filter_mode sk_hwts_filter_mode)
 {
 	int conf_phc_index, i, max_adj = 0, phc_index, required_modes = 0, sfl, sw_ts;
 	enum servo_type servo = config_get_int(config, NULL, "clock_servo");
@@ -1087,14 +1087,14 @@ struct clock *clock_create(enum clock_type type, struct config *config,
 	}
 
 	switch (type) {
-	case CLOCK_TYPE_ORDINARY:
-	case CLOCK_TYPE_BOUNDARY:
-	case CLOCK_TYPE_P2P:
-	case CLOCK_TYPE_E2E:
-		c->type = type;
-		break;
-	case CLOCK_TYPE_MANAGEMENT:
-		return NULL;
+		case CLOCK_TYPE_ORDINARY:
+		case CLOCK_TYPE_BOUNDARY:
+		case CLOCK_TYPE_P2P:
+		case CLOCK_TYPE_E2E:
+			c->type = type;
+			break;
+		case CLOCK_TYPE_MANAGEMENT:
+			return NULL;
 	}
 
 	/* Initialize the defaultDS. */
@@ -1169,7 +1169,7 @@ struct clock *clock_create(enum clock_type type, struct config *config,
 	c->dds.priority1 = config_get_int(config, NULL, "priority1");
 	c->dds.priority2 = config_get_int(config, NULL, "priority2");
 
-	/* Check the time stamping mode on each interface. */
+	/* Check the time stamping mode and rx filters on each interface. */
 	c->timestamping = timestamping;
 	required_modes = clock_required_modes(c);
 	STAILQ_FOREACH(iface, &config->interfaces, list) {
@@ -1183,6 +1183,10 @@ struct clock *clock_create(enum clock_type type, struct config *config,
 				!interface_tsmodes_supported(iface, required_modes)) {
 			pr_err("interface '%s' does not support requested timestamping mode",
 					interface_name(iface));
+			return NULL;
+		}
+        if (!sw_ts && !interface_check_rxfilters_all(iface, sk_hwts_filter_mode)) {
+			pr_err("interface '%s' does not support timestamping all packets", interface_name(iface));
 			return NULL;
 		}
 	}

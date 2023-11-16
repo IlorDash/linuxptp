@@ -147,8 +147,10 @@ int sk_get_error(int fd);
 int sk_set_priority(int fd, int family, uint8_t dscp);
 
 /**
- * If sk_adv_rx_filter is set, then handle XXX_SYNC and
- * XXX_DELAY_REQ hwtstamp_rx_filters.
+ * If interface doesn't support HWTSTAMP_FILTER_PTP_V2_XXX_EVENT RX filters,
+ * and support only HWTSTAMP_FILTER_PTP_V2_XXX_SYNC and
+ * HWTSTAMP_FILTER_PTP_V2_XXX_DELAY_REQ update it's RX filters
+ * when port state is changed.
  * @param fd          An open socket.
  * @param device      The name of the network interface to configure.
  * @param type        The requested flavor of time stamping.

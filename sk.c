@@ -42,7 +42,6 @@
 int sk_tx_timeout = 1;
 int sk_check_fupsync;
 int sk_tx_type = -1;
-int sk_adv_rx_filter = -1;
 enum hwts_filter_mode sk_hwts_filter_mode = HWTS_FILTER_NORMAL;
 
 /* private methods */
@@ -617,11 +616,7 @@ int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
 	}
 
 	if (type != TS_SOFTWARE) {
-		if (sk_adv_rx_filter == 1) {
-			filter1 = HWTSTAMP_FILTER_PTP_V2_SYNC;
-		} else {
-			filter1 = HWTSTAMP_FILTER_PTP_V2_EVENT;
-		}
+
 		switch (type) {
 		case TS_SOFTWARE:
 			tx_type = HWTSTAMP_TX_OFF;
@@ -636,6 +631,13 @@ int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
 		case TS_P2P1STEP:
 			tx_type = HWTSTAMP_TX_ONESTEP_P2P;
 			break;
+		}
+
+
+		if (sk_adv_rx_filter == 1) {
+			filter1 = HWTSTAMP_FILTER_PTP_V2_SYNC;
+		} else {
+			filter1 = HWTSTAMP_FILTER_PTP_V2_EVENT;
 		}
 		switch (transport) {
 		case TRANS_UDP_IPV4:
@@ -663,6 +665,8 @@ int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
 		if (err)
 			return err;
 	}
+
+
 
 	if (vclock >= 0)
 		flags |= SOF_TIMESTAMPING_BIND_PHC;

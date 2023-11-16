@@ -85,6 +85,14 @@ bool interface_tsmodes_supported(struct interface *iface, int modes)
 	return false;
 }
 
+bool interface_check_rxfilters_all(struct interface *iface, int filters) {
+
+	if ((iface->ts_info.rx_filters & filters) == filters) {
+		return true;
+	}
+	return false;
+}
+
 void interface_set_vclock(struct interface *iface, int vclock)
 {
 	iface->vclock = vclock;
