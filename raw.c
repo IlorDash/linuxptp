@@ -344,7 +344,7 @@ static int raw_open(struct transport *t, struct interface *iface,
 		goto no_general;
 
 	if (sk_timestamping_init(efd, name, ts_type, TRANS_IEEE_802_3,
-				 interface_get_vclock(iface)))
+				 interface_get_vclock(iface), interface_check_rxfilters_all()))
 		goto no_timestamping;
 
 	if (sk_general_init(gfd))
@@ -371,7 +371,7 @@ static int raw_update_rx_filter(struct interface *iface, struct fdarray *fda,
 
 	name = interface_label(iface);
 	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
-				     TRANS_IEEE_802_3, iface->ts_info.rx_filters is_master);
+				     TRANS_IEEE_802_3, is_master, interface_check_rxfilters_all());
 	return err;
 }
 

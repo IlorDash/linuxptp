@@ -87,7 +87,7 @@ bool interface_tsmodes_supported(struct interface *iface, int modes)
 
 bool interface_check_rxfilters_all(struct interface *iface, int filters) {
 
-	if ((iface->ts_info.rx_filters & filters) == filters) {
+	if ((iface->ts_info.rx_filters & HWTS_FILTER_FULL) == HWTS_FILTER_FULL) {
 		return true;
 	}
 	return false;

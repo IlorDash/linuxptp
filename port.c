@@ -3492,65 +3492,55 @@ enum delay_mechanism port_delay_mechanism(struct port *port)
 	return port->delayMechanism;
 }
 
-int port_state_update(struct port *p, enum fsm_event event, int mdiff)
-{
-	enum port_state next = p->state_machine(p->state, event, mdiff);
+int port_state_update(struct port *p, enum fsm_event event, int mdiff) {
+  enum port_state next = p->state_machine(p->state, event, mdiff);
 
-	if (PS_FAULTY == next) {
-		struct fault_interval i;
-		fault_interval(p, last_fault_type(p), &i);
-		if (port_link_status_get(p) && clear_fault_asap(&i)) {
-			pr_notice("%s: clearing fault immediately", p->log_name);
-			next = p->state_machine(next, EV_FAULT_CLEARED, 0);
-		}
-	}
+  if (PS_FAULTY == next) {
+    struct fault_interval i;
+    fault_interval(p, last_fault_type(p), &i);
+    if (port_link_status_get(p) && clear_fault_asap(&i)) {
+      pr_notice("%s: clearing fault immediately", p->log_name);
+      next = p->state_machine(next, EV_FAULT_CLEARED, 0);
+    }
+  }
 
-	if (PS_INITIALIZING == next) {
-		/*
-		 * This is a special case. Since we initialize the
-		 * port immediately, we can skip right to listening
-		 * state if all goes well.
-		 */
-		if (port_is_enabled(p)) {
-			port_disable(p);
-		}
-		if (port_initialize(p)) {
-			event = EV_FAULT_DETECTED;
-		} else {
-			event = EV_INIT_COMPLETE;
-		}
-		next = p->state_machine(next, event, 0);
-	}
+  if (PS_INITIALIZING == next) {
+    /*
+     * This is a special case. Since we initialize the
+     * port immediately, we can skip right to listening
+     * state if all goes well.
+     */
+    if (port_is_enabled(p)) {
+      port_disable(p);
+    }
+    if (port_initialize(p)) {
+      event = EV_FAULT_DETECTED;
+    } else {
+      event = EV_INIT_COMPLETE;
+    }
+    next = p->state_machine(next, event, 0);
+  }
 
-	if (mdiff) {
-		p->unicast_state_dirty = true;
-	}
-	if (next != p->state) {
-		if (sk_adv_rx_filter == 1) {
-			pr_debug("port state update prev %d next %d", p->state,
-				 next);
+  if (mdiff) {
+    p->unicast_state_dirty = true;
+  }
+  if (next != p->state) {
+    pr_debug("port state update prev %d next %d", p->state, next);
 
-			if ((next == PS_MASTER) || (next == PS_GRAND_MASTER))
-				transport_update_rx_filter(p->trp, p->iface,
-							   &p->fda,
-							   p->timestamping,
-							   true);
+    if ((next == PS_MASTER) || (next == PS_GRAND_MASTER) ||
+        (next == PS_UNCALIBRATED)) {
+      bool is_state_master = (next == PS_MASTER) || (next == PS_GRAND_MASTER);
+      transport_update_rx_filter(p->trp, p->iface, &p->fda, p->timestamping,
+                                 is_state_master);
+    }
+    port_show_transition(p, next, event);
+    p->state = next;
+    port_notify_event(p, NOTIFY_PORT_STATE);
+    p->unicast_state_dirty = true;
+    return 1;
+  }
 
-			if (next == PS_UNCALIBRATED)
-				transport_update_rx_filter(p->trp, p->iface,
-							   &p->fda,
-							   p->timestamping,
-							   false);
-		}
-
-		port_show_transition(p, next, event);
-		p->state = next;
-		port_notify_event(p, NOTIFY_PORT_STATE);
-		p->unicast_state_dirty = true;
-		return 1;
-	}
-
-	return 0;
+  return 0;
 }
 
 enum bmca_select port_bmca(struct port *p)

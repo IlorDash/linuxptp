@@ -180,7 +180,7 @@ static int udp_open(struct transport *t, struct interface *iface,
 		goto no_general;
 
 	if (sk_timestamping_init(efd, interface_label(iface), ts_type, TRANS_UDP_IPV4,
-				 interface_get_vclock(iface)))
+				 interface_get_vclock(iface), interface_check_rxfilters_all()))
 		goto no_timestamping;
 
 	if (sk_general_init(gfd))
@@ -216,7 +216,7 @@ static int udp_update_rx_filter(struct interface *iface, struct fdarray *fda,
 
 	name = interface_label(iface);
 	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
-				     TRANS_UDP_IPV4, is_master);
+				     TRANS_UDP_IPV4, is_master, interface_check_rxfilters_all());
 
 	return err;
 }
