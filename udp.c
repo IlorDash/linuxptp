@@ -179,8 +179,9 @@ static int udp_open(struct transport *t, struct interface *iface,
 	if (gfd < 0)
 		goto no_general;
 
-	if (sk_timestamping_init(efd, interface_label(iface), ts_type, TRANS_UDP_IPV4,
-				 interface_get_vclock(iface)))
+	if (sk_timestamping_init(efd, interface_label(iface), ts_type,
+				 TRANS_UDP_IPV4, interface_get_vclock(iface),
+				 interface_check_rxfilters_event(iface)))
 		goto no_timestamping;
 
 	if (sk_general_init(gfd))
@@ -206,6 +207,20 @@ no_general:
 	close(efd);
 no_event:
 	return -1;
+}
+
+static int udp_update_rx_filter(struct interface *iface, struct fdarray *fda,
+				enum timestamp_type ts_type, bool is_master)
+{
+	int err;
+	const char *name;
+
+	name = interface_label(iface);
+	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
+				     TRANS_UDP_IPV4, is_master,
+				     interface_check_rxfilters_event(iface));
+
+	return err;
 }
 
 static int udp_recv(struct transport *t, int fd, void *buf, int buflen,
@@ -302,6 +317,7 @@ struct transport *udp_transport_create(void)
 		return NULL;
 	udp->t.close = udp_close;
 	udp->t.open  = udp_open;
+	udp->t.update_rx_filter = udp_update_rx_filter;
 	udp->t.recv  = udp_recv;
 	udp->t.send  = udp_send;
 	udp->t.release = udp_release;

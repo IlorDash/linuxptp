@@ -22,6 +22,7 @@
 
 #include <time.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "fd.h"
 #include "msg.h"
@@ -59,6 +60,10 @@ int transport_close(struct transport *t, struct fdarray *fda);
 
 int transport_open(struct transport *t, struct interface *iface,
 		   struct fdarray *fda, enum timestamp_type tt);
+
+int transport_update_rx_filter(struct transport *t, struct interface *iface,
+			       struct fdarray *fda, enum timestamp_type tt,
+			       bool is_master);
 
 int transport_recv(struct transport *t, int fd, struct ptp_message *msg);
 

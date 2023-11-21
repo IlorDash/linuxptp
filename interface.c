@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include "interface.h"
 
+#define HWTSTAMP_FILTER_PTP_V2_XX_EVENT 0x1240
+
 struct interface {
 	STAILQ_ENTRY(interface) list;
 	char name[MAX_IFNAME_SIZE + 1];
@@ -80,6 +82,14 @@ bool interface_tsinfo_valid(struct interface *iface)
 bool interface_tsmodes_supported(struct interface *iface, int modes)
 {
 	if ((iface->ts_info.so_timestamping & modes) == modes) {
+		return true;
+	}
+	return false;
+}
+
+bool interface_check_rxfilters_event(struct interface *iface)
+{
+	if ((iface->ts_info.rx_filters & HWTSTAMP_FILTER_PTP_V2_XX_EVENT) > 0) {
 		return true;
 	}
 	return false;

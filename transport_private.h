@@ -35,6 +35,9 @@ struct transport {
 	int (*open)(struct transport *t, struct interface *iface,
 		    struct fdarray *fda, enum timestamp_type tt);
 
+	int (*update_rx_filter)(struct interface *iface, struct fdarray *fda,
+				enum timestamp_type ts_type, bool is_master);
+
 	int (*recv)(struct transport *t, int fd, void *buf, int buflen,
 		    struct address *addr, struct hw_timestamp *hwts);
 

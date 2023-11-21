@@ -114,7 +114,7 @@ int clock_required_modes(struct clock *c);
  * @return             A pointer to the single global clock instance.
  */
 struct clock *clock_create(enum clock_type type, struct config *config,
-			   const char *phc_device);
+			   const char *phc_device, enum hwts_filter_mode sk_hwts_filter_mode);
 
 /**
  * Obtains a clock's default data set.

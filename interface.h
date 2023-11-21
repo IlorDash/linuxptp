@@ -100,6 +100,13 @@ bool interface_ifinfo_valid(struct interface *iface);
 bool interface_tsmodes_supported(struct interface *iface, int modes);
 
 /**
+ * Tests whether an interface supports a HWTSTAMP_FILTER_PTP_V2_XX_EVENT.
+ * @param iface  The interface of interest.
+ * @return       True if the HWTSTAMP_FILTER_PTP_V2_XX_EVENT is supported, false otherwise.
+ */
+bool interface_check_rxfilters_event(struct interface *iface);
+
+/**
  * Set the vclock (virtual PHC) to be used for timestamping on an interface.
  * @param iface  The interface of interest.
  * @param vclock The index of the vclock.

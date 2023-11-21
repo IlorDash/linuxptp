@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	clock = clock_create(type, cfg, req_phc);
+	clock = clock_create(type, cfg, req_phc, sk_hwts_filter_mode);
 	if (!clock) {
 		fprintf(stderr, "failed to create a clock\n");
 		goto out;
