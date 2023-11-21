@@ -91,4 +91,12 @@ bool interface_tsinfo_valid(struct interface *iface);
  */
 bool interface_tsmodes_supported(struct interface *iface, int modes);
 
+/**
+ * Tests whether an interface supports all events (HWTSTAMP_FILTER_PTP_V2_EVENT,
+ * HWTSTAMP_FILTER_PTP_V2_L2_EVENT, HWTSTAMP_FILTER_PTP_V2_L4_EVENT).
+ * @param iface  The interface of interest.
+ * @return       True if all events are supported, false otherwise.
+ */
+bool interface_check_rxfilters_event(struct interface *iface);
+
 #endif

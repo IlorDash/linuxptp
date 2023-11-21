@@ -3210,6 +3210,16 @@ int port_state_update(struct port *p, enum fsm_event event, int mdiff)
 	}
 
 	if (next != p->state) {
+		pr_debug("port state update prev %d next %d", p->state, next);
+
+		if ((next == PS_MASTER) || (next == PS_GRAND_MASTER) ||
+		    (next == PS_UNCALIBRATED)) {
+			bool is_state_master = (next == PS_MASTER) ||
+					       (next == PS_GRAND_MASTER);
+			transport_update_rx_filter(p->trp, p->iface, &p->fda,
+						   p->timestamping,
+						   is_state_master);
+		}
 		port_show_transition(p, next, event);
 		p->state = next;
 		port_notify_event(p, NOTIFY_PORT_STATE);

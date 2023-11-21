@@ -243,7 +243,8 @@ static int raw_open(struct transport *t, struct interface *iface,
 	if (gfd < 0)
 		goto no_general;
 
-	if (sk_timestamping_init(efd, name, ts_type, TRANS_IEEE_802_3))
+	if (sk_timestamping_init(efd, name, ts_type, TRANS_IEEE_802_3,
+				 interface_check_rxfilters_event(iface)))
 		goto no_timestamping;
 
 	if (sk_general_init(gfd))
@@ -260,6 +261,19 @@ no_general:
 no_event:
 no_mac:
 	return -1;
+}
+
+static int raw_update_rx_filter(struct interface *iface, struct fdarray *fda,
+				enum timestamp_type ts_type, bool is_master)
+{
+	int err;
+	const char *name;
+
+	name = interface_label(iface);
+	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
+				     TRANS_IEEE_802_3, is_master,
+				     interface_check_rxfilters_event(iface));
+	return err;
 }
 
 static int raw_recv(struct transport *t, int fd, void *buf, int buflen,
@@ -372,6 +386,7 @@ struct transport *raw_transport_create(void)
 		return NULL;
 	raw->t.close   = raw_close;
 	raw->t.open    = raw_open;
+	raw->t.update_rx_filter = raw_update_rx_filter;
 	raw->t.recv    = raw_recv;
 	raw->t.send    = raw_send;
 	raw->t.release = raw_release;

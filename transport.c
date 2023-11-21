@@ -37,6 +37,13 @@ int transport_open(struct transport *t, struct interface *iface,
 	return t->open(t, iface, fda, tt);
 }
 
+int transport_update_rx_filter(struct transport *t, struct interface *iface,
+			       struct fdarray *fda, enum timestamp_type tt,
+			       bool is_master)
+{
+	return t->update_rx_filter(iface, fda, tt, is_master);
+}
+
 int transport_recv(struct transport *t, int fd, struct ptp_message *msg)
 {
 	return t->recv(t, fd, msg, sizeof(msg->data), &msg->address, &msg->hwts);

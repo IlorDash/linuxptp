@@ -196,7 +196,8 @@ static int udp6_open(struct transport *t, struct interface *iface,
 	if (gfd < 0)
 		goto no_general;
 
-	if (sk_timestamping_init(efd, interface_label(iface), ts_type, TRANS_UDP_IPV6))
+	if (sk_timestamping_init(efd, interface_label(iface), ts_type, TRANS_UDP_IPV6,
+				 interface_check_rxfilters_event(iface)))
 		goto no_timestamping;
 
 	if (sk_general_init(gfd))
@@ -222,6 +223,20 @@ no_general:
 	close(efd);
 no_event:
 	return -1;
+}
+
+static int udp6_update_rx_filter(struct interface *iface, struct fdarray *fda,
+				 enum timestamp_type ts_type, bool is_master)
+{
+	int err;
+	const char *name;
+
+	name = interface_label(iface);
+	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
+				     TRANS_UDP_IPV6, is_master,
+				     interface_check_rxfilters_event(iface));
+
+	return err;
 }
 
 static int udp6_recv(struct transport *t, int fd, void *buf, int buflen,
@@ -317,6 +332,7 @@ struct transport *udp6_transport_create(void)
 		return NULL;
 	udp6->t.close   = udp6_close;
 	udp6->t.open    = udp6_open;
+	udp6->t.update_rx_filter = udp6_update_rx_filter;
 	udp6->t.recv    = udp6_recv;
 	udp6->t.send    = udp6_send;
 	udp6->t.release = udp6_release;
