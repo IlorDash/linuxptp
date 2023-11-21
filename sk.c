@@ -578,118 +578,132 @@ int sk_ts_get_tx_type(enum timestamp_type type) {
 }
 
 int sk_ts_get_rx_filter(enum timestamp_type type, enum transport_type transport,
-                        bool is_master, bool filter_all_supported, int *filter1,
-                        int filter2) {
-  *filter1 = 0;
-  *filter2 = 0;
+			bool is_master, bool filter_event_supported,
+			int *filter1, int *filter2)
+{
+	*filter1 = 0;
+	*filter2 = 0;
 
-  if (type == TS_SOFTWARE)
-    return 0;
+	if (type == TS_SOFTWARE)
+		return 0;
 
-  if (filter_all_supported) {
-    filter1 = HWTSTAMP_FILTER_PTP_V2_EVENT;
-  } else {
-    filter1 = (is_master) ? HWTSTAMP_FILTER_PTP_V2_DELAY_REQ
-                          : HWTSTAMP_FILTER_PTP_V2_SYNC;
-  }
+	if (filter_event_supported) {
+		*filter1 = HWTSTAMP_FILTER_PTP_V2_EVENT;
+	} else {
+		*filter1 = (is_master) ? HWTSTAMP_FILTER_PTP_V2_DELAY_REQ :
+					 HWTSTAMP_FILTER_PTP_V2_SYNC;
+	}
 
-  switch (transport) {
-  case TRANS_UDP_IPV4:
-  case TRANS_UDP_IPV6:
-    if (filter_all_supported)
-      filter2 = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
-    else
-      filter2 = (is_master) ? HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ
-                            : HWTSTAMP_FILTER_PTP_V2_L4_SYNC;
-    break;
-  case TRANS_IEEE_802_3:
-    if (filter_all_supported)
-      filter2 = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
-    else
-      filter2 = (is_master) ? HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ
-                            : HWTSTAMP_FILTER_PTP_V2_L2_SYNC;
-    break;
-  default:
-    return -1;
-  }
-  pr_debug("update rx filter1 %d, filter2 %d, tx_type %d", filter1, filter2,
-           tx_type);
+	switch (transport) {
+	case TRANS_UDP_IPV4:
+	case TRANS_UDP_IPV6:
+		if (filter_event_supported)
+			*filter2 = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
+		else
+			*filter2 = (is_master) ?
+					   HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ :
+					   HWTSTAMP_FILTER_PTP_V2_L4_SYNC;
+		break;
+	case TRANS_IEEE_802_3:
+		if (filter_event_supported)
+			*filter2 = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
+		else
+			*filter2 = (is_master) ?
+					   HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ :
+					   HWTSTAMP_FILTER_PTP_V2_L2_SYNC;
+		break;
+	default:
+		return -1;
+	}
 
-  return 0;
+	return 0;
 }
 
 int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
-                           enum transport_type transport, bool is_master,
-                           bool filter_all_supported) {
-  int err, filter1, filter2;
+			   enum transport_type transport, bool is_master,
+			   bool filter_event_supported)
+{
+	int err, filter1, filter2;
 
-  err = sk_ts_get_rx_filter(type, transport, is_master, filter_all_supported,
-                            &filter1, &filter2);
-  if (err) return err;
+	err = sk_ts_get_rx_filter(type, transport, is_master,
+				  filter_event_supported, &filter1, &filter2);
+	if (err)
+		return err;
 
-  err = hwts_set(fd, device, filter1, filter2, tx_type);
-  return err;
+	pr_debug("update rx filter1 %d, filter2 %d, sk_tx_type %d", filter1,
+		 filter2, sk_tx_type);
+
+	err = hwts_set(fd, device, filter1, filter2, sk_tx_type);
+	return err;
 }
 
 int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
-                         enum transport_type transport, int vclock,
-                         bool filter_all_supported) {
-  int err, filter1, filter2 = 0, flags;
-  struct so_timestamping timestamping;
+			 enum transport_type transport, int vclock,
+			 bool filter_event_supported)
+{
+	int err, filter1, filter2 = 0, flags;
+	struct so_timestamping timestamping;
 
-  switch (type) {
-    case TS_SOFTWARE:
-      flags = SOF_TIMESTAMPING_TX_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE |
-              SOF_TIMESTAMPING_SOFTWARE;
-      break;
-    case TS_HARDWARE:
-    case TS_ONESTEP:
-    case TS_P2P1STEP:
-      flags = SOF_TIMESTAMPING_TX_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE |
-              SOF_TIMESTAMPING_RAW_HARDWARE;
-      break;
-    case TS_LEGACY_HW:
-      flags = SOF_TIMESTAMPING_TX_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE |
-              SOF_TIMESTAMPING_SYS_HARDWARE;
-      break;
-    default:
-      return -1;
-  }
+	switch (type) {
+	case TS_SOFTWARE:
+		flags = SOF_TIMESTAMPING_TX_SOFTWARE |
+			SOF_TIMESTAMPING_RX_SOFTWARE |
+			SOF_TIMESTAMPING_SOFTWARE;
+		break;
+	case TS_HARDWARE:
+	case TS_ONESTEP:
+	case TS_P2P1STEP:
+		flags = SOF_TIMESTAMPING_TX_HARDWARE |
+			SOF_TIMESTAMPING_RX_HARDWARE |
+			SOF_TIMESTAMPING_RAW_HARDWARE;
+		break;
+	case TS_LEGACY_HW:
+		flags = SOF_TIMESTAMPING_TX_HARDWARE |
+			SOF_TIMESTAMPING_RX_HARDWARE |
+			SOF_TIMESTAMPING_SYS_HARDWARE;
+		break;
+	default:
+		return -1;
+	}
 
-  if (type != TS_SOFTWARE) {
-    sk_tx_type = sk_ts_get_tx_type(type);
+	if (type != TS_SOFTWARE) {
+		sk_tx_type = sk_ts_get_tx_type(type);
 
-  err = sk_ts_get_rx_filter(type, transport, false, filter_all_supported,
-                            &filter1, &filter2);
-    if (err) return err;
+		err = sk_ts_get_rx_filter(type, transport, false,
+					  filter_event_supported, &filter1,
+					  &filter2);
+		if (err)
+			return err;
 
-    err = hwts_set(fd, device, filter1, filter2, sk_tx_type);
-    if (err) return err;
-  }
+		err = hwts_set(fd, device, filter1, filter2, sk_tx_type);
+		if (err)
+			return err;
+	}
 
-  if (vclock >= 0) flags |= SOF_TIMESTAMPING_BIND_PHC;
+	if (vclock >= 0)
+		flags |= SOF_TIMESTAMPING_BIND_PHC;
 
-  timestamping.flags = flags;
-  timestamping.bind_phc = vclock;
+	timestamping.flags = flags;
+	timestamping.bind_phc = vclock;
 
-  if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMPING, &timestamping,
-                 sizeof(timestamping)) < 0) {
-    pr_err("ioctl SO_TIMESTAMPING failed: %m");
-    return -1;
-  }
+	if (setsockopt(fd, SOL_SOCKET, SO_TIMESTAMPING, &timestamping,
+		       sizeof(timestamping)) < 0) {
+		pr_err("ioctl SO_TIMESTAMPING failed: %m");
+		return -1;
+	}
 
-  flags = 1;
-  if (setsockopt(fd, SOL_SOCKET, SO_SELECT_ERR_QUEUE, &flags, sizeof(flags)) <
-      0) {
-    pr_warning("%s: SO_SELECT_ERR_QUEUE: %m", device);
-    sk_events = 0;
-    sk_revents = POLLERR;
-  }
+	flags = 1;
+	if (setsockopt(fd, SOL_SOCKET, SO_SELECT_ERR_QUEUE, &flags,
+		       sizeof(flags)) < 0) {
+		pr_warning("%s: SO_SELECT_ERR_QUEUE: %m", device);
+		sk_events = 0;
+		sk_revents = POLLERR;
+	}
 
-  /* Enable the sk_check_fupsync option, perhaps. */
-  if (sk_general_init(fd)) {
-    return -1;
-  }
+	/* Enable the sk_check_fupsync option, perhaps. */
+	if (sk_general_init(fd)) {
+		return -1;
+	}
 
-  return 0;
+	return 0;
 }

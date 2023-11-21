@@ -197,7 +197,8 @@ static int udp6_open(struct transport *t, struct interface *iface,
 		goto no_general;
 
 	if (sk_timestamping_init(efd, interface_label(iface), ts_type,
-				 TRANS_UDP_IPV6, interface_get_vclock(iface), interface_check_rxfilters_all()))
+				 TRANS_UDP_IPV6, interface_get_vclock(iface),
+				 interface_check_rxfilters_event(iface)))
 		goto no_timestamping;
 
 	if (sk_general_init(gfd))
@@ -233,7 +234,8 @@ static int udp6_update_rx_filter(struct interface *iface, struct fdarray *fda,
 
 	name = interface_label(iface);
 	err = sk_ts_update_rx_filter(fda->fd[FD_EVENT], name, ts_type,
-				     TRANS_UDP_IPV6, is_master, interface_check_rxfilters_all());
+				     TRANS_UDP_IPV6, is_master,
+				     interface_check_rxfilters_event(iface));
 
 	return err;
 }

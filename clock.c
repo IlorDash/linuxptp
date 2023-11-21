@@ -1185,10 +1185,6 @@ struct clock *clock_create(enum clock_type type, struct config *config,
 					interface_name(iface));
 			return NULL;
 		}
-        if (!sw_ts && !interface_check_rxfilters_all(iface, sk_hwts_filter_mode)) {
-			pr_err("interface '%s' does not support timestamping all packets", interface_name(iface));
-			return NULL;
-		}
 	}
 
 	iface = STAILQ_FIRST(&config->interfaces);

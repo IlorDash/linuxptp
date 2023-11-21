@@ -159,7 +159,8 @@ int sk_set_priority(int fd, int family, uint8_t dscp);
  * @return            Zero on success, non-zero otherwise.
  */
 int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
-			   enum transport_type transport, bool is_master);
+			   enum transport_type transport, bool is_master,
+			   bool filter_all_supported);
 
 /**
  * Enable time stamping on a given network interface.
@@ -171,7 +172,8 @@ int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
  * @return            Zero on success, non-zero otherwise.
  */
 int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
-			 enum transport_type transport, int vclock);
+			 enum transport_type transport, int vclock,
+			 bool filter_all_supported);
 
 /**
  * Limits the time that RECVMSG(2) will poll while waiting for the tx timestamp
@@ -185,8 +187,6 @@ extern int sk_tx_timeout;
  * follow up messages using their network stack receipt time stamps.
  */
 extern int sk_check_fupsync;
-
-extern int sk_adv_rx_filter;
 
 /**
  * Hardware time-stamp setting mode
