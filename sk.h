@@ -147,6 +147,22 @@ int sk_get_error(int fd);
 int sk_set_priority(int fd, int family, uint8_t dscp);
 
 /**
+ * If interface doesn't support HWTSTAMP_FILTER_PTP_V2_XXX_EVENT RX filters,
+ * and support only HWTSTAMP_FILTER_PTP_V2_XXX_SYNC and
+ * HWTSTAMP_FILTER_PTP_V2_XXX_DELAY_REQ update it's RX filters
+ * when port state is changed.
+ * @param fd          An open socket.
+ * @param device      The name of the network interface to configure.
+ * @param type        The requested flavor of time stamping.
+ * @param transport   The type of transport used.
+ * @param is_master   Is current port state is Master.
+ * @return            Zero on success, non-zero otherwise.
+ */
+int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
+			   enum transport_type transport, bool is_master,
+			   bool filter_all_supported);
+
+/**
  * Enable time stamping on a given network interface.
  * @param fd          An open socket.
  * @param device      The name of the network interface to configure.
@@ -156,7 +172,8 @@ int sk_set_priority(int fd, int family, uint8_t dscp);
  * @return            Zero on success, non-zero otherwise.
  */
 int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
-			 enum transport_type transport, int vclock);
+			 enum transport_type transport, int vclock,
+			 bool filter_event_supported);
 
 /**
  * Limits the time that RECVMSG(2) will poll while waiting for the tx timestamp

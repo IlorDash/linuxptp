@@ -41,6 +41,7 @@
 
 int sk_tx_timeout = 1;
 int sk_check_fupsync;
+int sk_tx_type = HWTSTAMP_TX_ON;
 enum hwts_filter_mode sk_hwts_filter_mode = HWTS_FILTER_NORMAL;
 
 /* private methods */
@@ -56,7 +57,7 @@ static void init_ifreq(struct ifreq *ifreq, struct hwtstamp_config *cfg,
 	ifreq->ifr_data = (void *) cfg;
 }
 
-static int hwts_init(int fd, const char *device, int rx_filter,
+static int hwts_set(int fd, const char *device, int rx_filter,
 	int rx_filter2, int tx_type)
 {
 	struct ifreq ifreq;
@@ -131,7 +132,6 @@ static int hwts_init(int fd, const char *device, int rx_filter,
 		pr_err("The current filter does not match the required");
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -556,10 +556,70 @@ int sk_set_priority(int fd, int family, uint8_t dscp)
 	return 0;
 }
 
-int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
-			 enum transport_type transport, int vclock)
+int sk_ts_get_rx_filter(enum timestamp_type type, enum transport_type transport,
+			bool is_master, bool filter_event_supported,
+			int *filter1, int *filter2)
 {
-	int err, filter1, filter2 = 0, flags, tx_type = HWTSTAMP_TX_ON;
+	*filter1 = 0;
+	*filter2 = 0;
+
+	if (type == TS_SOFTWARE)
+		return 0;
+
+	if (filter_event_supported) {
+		*filter1 = HWTSTAMP_FILTER_PTP_V2_EVENT;
+	} else {
+		*filter1 = (is_master) ? HWTSTAMP_FILTER_PTP_V2_DELAY_REQ :
+					 HWTSTAMP_FILTER_PTP_V2_SYNC;
+	}
+
+	switch (transport) {
+	case TRANS_UDP_IPV4:
+	case TRANS_UDP_IPV6:
+		if (filter_event_supported)
+			*filter2 = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
+		else
+			*filter2 = (is_master) ?
+					   HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ :
+					   HWTSTAMP_FILTER_PTP_V2_L4_SYNC;
+		break;
+	case TRANS_IEEE_802_3:
+		if (filter_event_supported)
+			*filter2 = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
+		else
+			*filter2 = (is_master) ?
+					   HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ :
+					   HWTSTAMP_FILTER_PTP_V2_L2_SYNC;
+		break;
+	default:
+		return -1;
+	}
+
+	return 0;
+}
+
+int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
+			   enum transport_type transport, bool is_master,
+			   bool filter_event_supported)
+{
+	int err, filter1, filter2;
+
+	err = sk_ts_get_rx_filter(type, transport, is_master,
+				  filter_event_supported, &filter1, &filter2);
+	if (err)
+		return err;
+
+	pr_debug("update rx filter1 %d, filter2 %d", filter1, filter2);
+
+	err = hwts_set(fd, device, filter1, filter2, sk_tx_type);
+	return err;
+}
+
+int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
+			 enum transport_type transport, int vclock,
+			 bool filter_event_supported)
+{
+	int err, filter1, filter2 = 0, flags;
 	struct so_timestamping timestamping;
 
 	switch (type) {
@@ -585,37 +645,29 @@ int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
 	}
 
 	if (type != TS_SOFTWARE) {
-		filter1 = HWTSTAMP_FILTER_PTP_V2_EVENT;
 		switch (type) {
 		case TS_SOFTWARE:
-			tx_type = HWTSTAMP_TX_OFF;
+			sk_tx_type = HWTSTAMP_TX_OFF;
 			break;
 		case TS_HARDWARE:
 		case TS_LEGACY_HW:
-			tx_type = HWTSTAMP_TX_ON;
+			sk_tx_type = HWTSTAMP_TX_ON;
 			break;
 		case TS_ONESTEP:
-			tx_type = HWTSTAMP_TX_ONESTEP_SYNC;
+			sk_tx_type = HWTSTAMP_TX_ONESTEP_SYNC;
 			break;
 		case TS_P2P1STEP:
-			tx_type = HWTSTAMP_TX_ONESTEP_P2P;
+			sk_tx_type = HWTSTAMP_TX_ONESTEP_P2P;
 			break;
 		}
-		switch (transport) {
-		case TRANS_UDP_IPV4:
-		case TRANS_UDP_IPV6:
-			filter2 = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
-			break;
-		case TRANS_IEEE_802_3:
-			filter2 = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
-			break;
-		case TRANS_DEVICENET:
-		case TRANS_CONTROLNET:
-		case TRANS_PROFINET:
-		case TRANS_UDS:
-			return -1;
-		}
-		err = hwts_init(fd, device, filter1, filter2, tx_type);
+
+		err = sk_ts_get_rx_filter(type, transport, false,
+					  filter_event_supported, &filter1,
+					  &filter2);
+		if (err)
+			return err;
+
+		err = hwts_set(fd, device, filter1, filter2, sk_tx_type);
 		if (err)
 			return err;
 	}
