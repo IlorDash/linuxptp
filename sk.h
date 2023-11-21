@@ -173,7 +173,7 @@ int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
  */
 int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
 			 enum transport_type transport, int vclock,
-			 bool filter_all_supported);
+			 bool filter_event_supported);
 
 /**
  * Limits the time that RECVMSG(2) will poll while waiting for the tx timestamp

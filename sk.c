@@ -41,7 +41,7 @@
 
 int sk_tx_timeout = 1;
 int sk_check_fupsync;
-int sk_tx_type = -1;
+int sk_tx_type = HWTSTAMP_TX_ON;
 enum hwts_filter_mode sk_hwts_filter_mode = HWTS_FILTER_NORMAL;
 
 /* private methods */
@@ -556,28 +556,6 @@ int sk_set_priority(int fd, int family, uint8_t dscp)
 	return 0;
 }
 
-int sk_ts_get_tx_type(enum timestamp_type type)
-{
-	int tx_type = HWTSTAMP_TX_ON;
-
-	switch (type) {
-	case TS_SOFTWARE:
-		tx_type = HWTSTAMP_TX_OFF;
-		break;
-	case TS_HARDWARE:
-	case TS_LEGACY_HW:
-		tx_type = HWTSTAMP_TX_ON;
-		break;
-	case TS_ONESTEP:
-		tx_type = HWTSTAMP_TX_ONESTEP_SYNC;
-		break;
-	case TS_P2P1STEP:
-		tx_type = HWTSTAMP_TX_ONESTEP_P2P;
-		break;
-	}
-	return tx_type;
-}
-
 int sk_ts_get_rx_filter(enum timestamp_type type, enum transport_type transport,
 			bool is_master, bool filter_event_supported,
 			int *filter1, int *filter2)
@@ -631,8 +609,7 @@ int sk_ts_update_rx_filter(int fd, const char *device, enum timestamp_type type,
 	if (err)
 		return err;
 
-	pr_debug("update rx filter1 %d, filter2 %d, sk_tx_type %d", filter1,
-		 filter2, sk_tx_type);
+	pr_debug("update rx filter1 %d, filter2 %d", filter1, filter2);
 
 	err = hwts_set(fd, device, filter1, filter2, sk_tx_type);
 	return err;
@@ -668,7 +645,21 @@ int sk_timestamping_init(int fd, const char *device, enum timestamp_type type,
 	}
 
 	if (type != TS_SOFTWARE) {
-		sk_tx_type = sk_ts_get_tx_type(type);
+		switch (type) {
+		case TS_SOFTWARE:
+			sk_tx_type = HWTSTAMP_TX_OFF;
+			break;
+		case TS_HARDWARE:
+		case TS_LEGACY_HW:
+			sk_tx_type = HWTSTAMP_TX_ON;
+			break;
+		case TS_ONESTEP:
+			sk_tx_type = HWTSTAMP_TX_ONESTEP_SYNC;
+			break;
+		case TS_P2P1STEP:
+			sk_tx_type = HWTSTAMP_TX_ONESTEP_P2P;
+			break;
+		}
 
 		err = sk_ts_get_rx_filter(type, transport, false,
 					  filter_event_supported, &filter1,

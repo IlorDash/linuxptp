@@ -1076,7 +1076,7 @@ int clock_required_modes(struct clock *c)
 }
 
 struct clock *clock_create(enum clock_type type, struct config *config,
-			   const char *phc_device, enum hwts_filter_mode sk_hwts_filter_mode)
+			   const char *phc_device)
 {
 	int conf_phc_index, i, max_adj = 0, phc_index, required_modes = 0, sfl, sw_ts;
 	enum servo_type servo = config_get_int(config, NULL, "clock_servo");
