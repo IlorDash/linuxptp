@@ -108,6 +108,7 @@ struct domain {
 	int kernel_leap;
 	int state_changed;
 	int free_running;
+	int has_rt_clock;
 	struct pmc_agent *agent;
 	int agent_subscribed;
 	LIST_HEAD(port_head, port) ports;
@@ -389,6 +390,11 @@ static int reconfigure_domain(struct domain *domain)
 		LIST_REMOVE(LIST_FIRST(&domain->dst_clocks), dst_list);
 	}
 
+	if (!domain->has_rt_clock && !domain->agent_subscribed) {
+		domain->src_clock = NULL;
+		return 0;
+	}
+
 	LIST_FOREACH(c, &domain->clocks, list) {
 		if (c->clkid == CLOCK_REALTIME) {
 			/* If present, it can always be a sink clock */
@@ -492,10 +498,8 @@ static void reconfigure(struct domain *domains, int n_domains)
 			src_domain = &domains[i];
 		}
 
-		if (!LIST_EMPTY(&domains[i].clocks) &&
-		    LIST_FIRST(&domains[i].clocks)->clkid == CLOCK_REALTIME) {
+		if (domains[i].has_rt_clock)
 			rt_domain = &domains[i];
-		}
 	}
 
 	if (n_domains <= 1 || !src_domain) {
@@ -804,9 +808,9 @@ static int update_domain_clocks(struct domain *domain)
 
 static int do_loop(struct domain *domains, int n_domains)
 {
+	int i, state_changed, prev_sub;
 	struct timespec interval;
 	struct domain *domain;
-	int i, state_changed;
 
 	/* All domains have the same interval */
 	interval.tv_sec = domains[0].phc_interval;
@@ -819,6 +823,17 @@ static int do_loop(struct domain *domains, int n_domains)
 		for (i = 0; i < n_domains; i++) {
 			domain = &domains[i];
 			if (pmc_agent_update(domain->agent) < 0) {
+				continue;
+			}
+
+			prev_sub = domain->agent_subscribed;
+			domain->agent_subscribed =
+				pmc_agent_is_subscribed(domain->agent);
+			if (!domain->has_rt_clock && !domain->agent_subscribed) {
+				if (prev_sub) {
+					pr_err("Lost connection to ptp4l #%d", i + 1);
+					state_changed = 1;
+				}
 				continue;
 			}
 
@@ -881,8 +896,6 @@ static int phc2sys_recv_subscribed(void *context, struct ptp_message *msg,
 	struct port *port;
 	struct clock *clock;
 
-	domain->agent_subscribed = 1;
-
 	mgt_id = management_tlv_id(msg);
 	if (mgt_id == excluded)
 		return 0;
@@ -942,7 +955,7 @@ static int auto_init_ports(struct domain *domain)
 		return -1;
 	}
 
-	err = pmc_agent_subscribe(domain->agent, 1000);
+	err = pmc_agent_subscribe(domain->agent, 1000, domain->phc_interval);
 	if (err) {
 		pr_err("failed to subscribe");
 		return -1;
@@ -997,6 +1010,7 @@ static int auto_init_rt(struct domain *domain, int dest_only)
 		return -1;
 	clock->dest_only = dest_only;
 	domain->src_priority = 0;
+	domain->has_rt_clock = 1;
 	return 0;
 }
 
@@ -1008,7 +1022,7 @@ static int clock_handle_leap(struct domain *domain, struct clock *clock,
 	struct pmc_agent *agent;
 
 	/* The system clock's domain doesn't have a subscribed agent */
-	agent = domain->agent_subscribed ? domain->agent : domain->src_domain->agent;
+	agent = domain->has_rt_clock ? domain->src_domain->agent : domain->agent;
 
 	node_leap = pmc_agent_get_leap(agent);
 	clock->sync_offset = pmc_agent_get_sync_offset(agent);
