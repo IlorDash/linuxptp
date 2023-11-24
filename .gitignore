@@ -12,3 +12,7 @@
 /ts2phc
 /tz2alt
 .pre-commit-config.yaml
+custom-pre-commit.sh
+.vscode-ctags
+.codespellrc
+.clang-format
