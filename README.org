@@ -1,4 +1,11 @@
 
+* About the fork
+
+  This fork supports dynamic switching of RX filters from SYNC to DELAY_REQ,
+  based on whether the device is Slave or Master respectively.
+  The feature is added for hardware that requires determining
+  which PTP packets on RX must be timestamped.
+
 * Introduction
 
   This software is an implementation of the Precision Time Protocol
