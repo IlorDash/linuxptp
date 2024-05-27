@@ -171,6 +171,7 @@ static struct config_enum delay_filter_enu[] = {
 
 static struct config_enum delay_mech_enu[] = {
 	{ "Auto", DM_AUTO },
+	{ "COMMON_P2P", DM_COMMON_P2P },
 	{ "E2E",  DM_E2E },
 	{ "P2P",  DM_P2P },
 	{ "NONE", DM_NO_MECHANISM },
@@ -235,6 +236,7 @@ static struct config_enum bmca_enu[] = {
 };
 
 struct config_item config_tab[] = {
+	PORT_ITEM_INT("allowedLostResponses", 3, 1, 255),
 	PORT_ITEM_INT("announceReceiptTimeout", 3, 2, UINT8_MAX),
 	PORT_ITEM_ENU("asCapable", AS_CAPABLE_AUTO, as_capable_enu),
 	GLOB_ITEM_INT("assume_two_step", 0, 0, 1),
@@ -248,6 +250,11 @@ struct config_item config_tab[] = {
 	GLOB_ITEM_INT("clock_class_threshold", CLOCK_CLASS_THRESHOLD_DEFAULT, 6, CLOCK_CLASS_THRESHOLD_DEFAULT),
 	GLOB_ITEM_ENU("clock_servo", CLOCK_SERVO_PI, clock_servo_enu),
 	GLOB_ITEM_ENU("clock_type", CLOCK_TYPE_ORDINARY, clock_type_enu),
+	PORT_ITEM_STR("cmlds.client_address", "/var/run/cmlds_client"),
+	PORT_ITEM_INT("cmlds.domainNumber", 0, 0, 255),
+	PORT_ITEM_INT("cmlds.majorSdoId", 2, 0, 0x0F),
+	PORT_ITEM_INT("cmlds.port", 0, 0, UINT16_MAX),
+	PORT_ITEM_STR("cmlds.server_address", "/var/run/cmlds_server"),
 	GLOB_ITEM_ENU("dataset_comparison", DS_CMP_IEEE1588, dataset_comp_enu),
 	PORT_ITEM_INT("delayAsymmetry", 0, INT_MIN, INT_MAX),
 	PORT_ITEM_ENU("delay_filter", FILTER_MOVING_MEDIAN, delay_filter_enu),
@@ -318,6 +325,7 @@ struct config_item config_tab[] = {
 	GLOB_ITEM_STR("productDescription", ";;"),
 	PORT_ITEM_STR("ptp_dst_mac", "01:1B:19:00:00:00"),
 	PORT_ITEM_STR("p2p_dst_mac", "01:80:C2:00:00:0E"),
+	GLOB_ITEM_INT("ptp_minor_version", 1, 0, 1),
 	GLOB_ITEM_STR("refclock_sock_address", "/var/run/refclock.ptp.sock"),
 	GLOB_ITEM_STR("revisionData", ";;"),
 	GLOB_ITEM_INT("sanity_freq_limit", 200000000, 0, INT_MAX),
@@ -812,8 +820,8 @@ int config_read(const char *name, struct config *cfg)
 
 		if (parse_section_line(line, &current_section) == PARSED_OK) {
 			if (current_section == PORT_SECTION) {
-				char port[17];
-				if (1 != sscanf(line, " %16s", port)) {
+				char port[129];
+				if (1 != sscanf(line, " %128s", port)) {
 					fprintf(stderr, "could not parse port name on line %d\n",
 							line_num);
 					goto parse_error;
@@ -894,7 +902,7 @@ struct interface *config_create_interface(const char *name, struct config *cfg)
 			return iface;
 	}
 
-	iface = interface_create(name);
+	iface = interface_create(name, NULL);
 	if (!iface) {
 		fprintf(stderr, "cannot allocate memory for a port\n");
 		return NULL;

@@ -55,7 +55,7 @@ struct lstab {
 	int length;
 };
 
-static const uint64_t expiration_date_ntp = 3928521600ULL; /* 24 June 2024 */
+static const uint64_t expiration_date_ntp = 3944332800ULL; /* 24 Dec 2024 */
 
 static const uint64_t offset_table[N_LEAPS * 2] = {
 	2272060800ULL,	10,	/* 1 Jan 1972 */
@@ -137,7 +137,7 @@ static int lstab_read(struct lstab *lstab, const char *name)
 		fprintf(stderr, "failed to open '%s' for reading: %m\n", name);
 		return -1;
 	}
-	while (1) {
+	while (index < N_LEAPS) {
 		if (!fgets(buf, sizeof(buf), fp)) {
 			break;
 		}
@@ -195,7 +195,6 @@ struct lstab *lstab_create(const char *filename)
 
 int update_leapsecond_table(struct lstab *lstab)
 {
-	const char* leapfile;
 	struct stat statbuf;
 	int err;
 
@@ -212,13 +211,13 @@ int update_leapsecond_table(struct lstab *lstab)
 		return 0;
 	}
 	printf("updating leap seconds file\n");
-	leapfile = lstab->leapfile;
-	lstab_destroy(lstab);
 
-	lstab = lstab_create(leapfile);
-	if (!lstab) {
+	if (lstab_read(lstab, lstab->leapfile)) {
+		lstab->length = 0;
 		return -1;
 	}
+
+	lstab->lsfile_mtime = statbuf.st_mtim.tv_sec;
 
 	return 0;
 }

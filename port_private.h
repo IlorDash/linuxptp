@@ -26,10 +26,10 @@
 #include "fsm.h"
 #include "monitor.h"
 #include "msg.h"
+#include "pmc_common.h"
 #include "power_profile.h"
 #include "tmv.h"
-
-#define NSEC2SEC 1000000000LL
+#include "util.h"
 
 enum syfu_state {
 	SF_EMPTY,
@@ -146,6 +146,7 @@ struct port {
 	UInteger8           versionNumber; /* UInteger4 */
 	UInteger8	    delay_response_counter;
 	UInteger8	    delay_response_timeout;
+	UInteger8	    allowedLostResponses;
 	bool		    iface_rate_tlv;
 	Integer64	    portAsymmetry;
 	struct PortStats    stats;
@@ -164,6 +165,12 @@ struct port {
 	/* slave event monitoring */
 	struct monitor *slave_event_monitor;
 	bool unicast_state_dirty;
+	struct {
+		unsigned int timer_count;
+		time_t last_renewal;
+		struct pmc *pmc;
+		int port;
+	} cmlds;
 };
 
 #define portnum(p) (p->portIdentity.portNumber)

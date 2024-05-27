@@ -169,6 +169,7 @@ static void pmc_show(struct ptp_message *msg, FILE *fp)
 	struct subscribe_events_np *sen;
 	struct port_properties_np *ppn;
 	struct port_hwclock_np *phn;
+	struct cmlds_info_np *cmlds;
 	struct timePropertiesDS *tp;
 	struct management_tlv *mgt;
 	struct time_status_np *tsn;
@@ -452,11 +453,13 @@ static void pmc_show(struct ptp_message *msg, FILE *fp)
 			IFMT "duration               %hu"
 			IFMT "NOTIFY_PORT_STATE      %s"
 			IFMT "NOTIFY_TIME_SYNC       %s"
-			IFMT "NOTIFY_PARENT_DATA_SET %s",
+			IFMT "NOTIFY_PARENT_DATA_SET %s"
+			IFMT "NOTIFY_CMLDS           %s",
 			sen->duration,
 			event_bitmask_get(sen->bitmask, NOTIFY_PORT_STATE) ? "on" : "off",
 			event_bitmask_get(sen->bitmask, NOTIFY_TIME_SYNC) ? "on" : "off",
-			event_bitmask_get(sen->bitmask, NOTIFY_PARENT_DATA_SET) ? "on" : "off");
+			event_bitmask_get(sen->bitmask, NOTIFY_PARENT_DATA_SET) ? "on" : "off",
+			event_bitmask_get(sen->bitmask, NOTIFY_CMLDS) ? "on" : "off");
 		break;
 	case MID_SYNCHRONIZATION_UNCERTAIN_NP:
 		mtd = (struct management_tlv_datum *) mgt->data;
@@ -622,6 +625,16 @@ static void pmc_show(struct ptp_message *msg, FILE *fp)
 			pwr->grandmasterTimeInaccuracy,
 			pwr->networkTimeInaccuracy,
 			pwr->totalTimeInaccuracy);
+		break;
+	case MID_CMLDS_INFO_NP:
+		cmlds = (struct cmlds_info_np *) mgt->data;
+		fprintf(fp, "CMLDS_INFO_NP "
+			IFMT "meanLinkDelay           %" PRId64
+			IFMT "scaledNeighborRateRatio %" PRId32
+			IFMT "as_capable              %" PRIu32,
+			cmlds->meanLinkDelay >> 16,
+			cmlds->scaledNeighborRateRatio,
+			cmlds->as_capable);
 		break;
 	case MID_LOG_ANNOUNCE_INTERVAL:
 		mtd = (struct management_tlv_datum *) mgt->data;
@@ -823,8 +836,10 @@ int main(int argc, char *argv[])
 	print_set_syslog(1);
 	print_set_verbose(1);
 
-	pmc = pmc_create(cfg, transport_type, iface_name, boundary_hops,
-			 domain_number, transport_specific, zero_datalen);
+	pmc = pmc_create(cfg, transport_type, iface_name,
+			 config_get_string(cfg, NULL, "uds_address"),
+			 boundary_hops, domain_number, transport_specific,
+			 zero_datalen);
 	if (!pmc) {
 		fprintf(stderr, "failed to create pmc\n");
 		config_destroy(cfg);

@@ -143,6 +143,12 @@ See UNICAST DISCOVERY OPTIONS, below.
 .SH PORT OPTIONS
 
 .TP
+.B allowedLostResponses
+The number of missed peer delay responses before the asCapable variable is
+reset.
+The default is 3.
+
+.TP
 .B announceReceiptTimeout
 The number of missed Announce messages before the last Announce messages
 expires.
@@ -158,6 +164,41 @@ devices" that are not synchronized to each other. For this mode, the
 collection of clocks must be synchronized by an external program, for
 example phc2sys(8) in "automatic" mode.
 The default is 0 (disabled).
+
+.TP
+.B cmlds.client_address
+Specifies the source address for the UNIX domain socket that receives
+peer delay measurement when using the "COMMON_P2P" delay mechanism.
+The default is /var/run/cmlds_client.
+
+.TP
+.B cmlds.domainNumber
+Specifies the domainNumber message field for communications with the
+local Common Mean Link Delay Service, used with the "COMMON_P2P" delay
+mechanism.
+The default is 0.
+
+.TP
+.B cmlds.majorSdoId
+Specifies the transportSpecific message field for communications with
+the local Common Mean Link Delay Service, used with the "COMMON_P2P"
+delay mechanism.
+The default is 2.
+
+.TP
+.B cmlds.port
+Specifies the port number of local Common Mean Link Delay Service from
+which to accept delay measurements.  The range of valid port numbers
+is one to 65535, but the special value zero configures the port number
+of the port requesting the measurements.
+The default is 0, meaning the requesting port number.
+
+.TP
+.B
+cmlds.server_address
+Specifies the UNIX domain socket address of the local Common Mean Link
+Delay Service, for use with the "COMMON_P2P" delay mechanism.
+The default is /var/run/cmlds_server.
 
 .TP
 .B delayAsymmetry
@@ -179,7 +220,9 @@ The default is 10.
 
 .TP
 .B delay_mechanism
-Select the delay mechanism. Possible values are E2E, P2P, NONE and Auto.
+
+Select the delay mechanism. Possible values are Auto, COMMON_P2P, E2E,
+P2P, and NONE.
 The default is E2E.
 
 .TP
@@ -809,6 +852,11 @@ The priority2 attribute of the local clock. It is used in the PTP server
 selection algorithm, lower values take precedence. Must be in the range 0 to
 255.
 The default is 128.
+
+.TP
+.B ptp_minor_version
+This option sets the minorVersionPTP in the common PTP message header.
+The default is 1.
 
 .TP
 .B refclock_sock_address

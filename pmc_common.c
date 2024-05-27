@@ -156,6 +156,7 @@ struct management_id idtab[] = {
 	{ "UNICAST_MASTER_TABLE_NP", MID_UNICAST_MASTER_TABLE_NP, do_get_action },
 	{ "PORT_HWCLOCK_NP", MID_PORT_HWCLOCK_NP, do_get_action },
 	{ "POWER_PROFILE_SETTINGS_NP", MID_POWER_PROFILE_SETTINGS_NP, do_set_action },
+	{ "CMLDS_INFO_NP", MID_CMLDS_INFO_NP, do_get_action },
 };
 
 static void do_get_action(struct pmc *pmc, int action, int index, char *str)
@@ -179,6 +180,7 @@ static void do_set_action(struct pmc *pmc, int action, int index, char *str)
 	char onoff_port_state[4] = "off";
 	char onoff_time_status[4] = "off";
 	char onoff_parent_data_set[4] = "off";
+	char onoff_cmlds[4] = "off";
 	char display_name[11] = {0};
 	uint64_t jump;
 	uint8_t key;
@@ -305,13 +307,15 @@ static void do_set_action(struct pmc *pmc, int action, int index, char *str)
 			     "duration          %hu "
 			     "NOTIFY_PORT_STATE %3s "
 			     "NOTIFY_TIME_SYNC  %3s "
-			     "NOTIFY_PARENT_DATA_SET %3s ",
+			     "NOTIFY_PARENT_DATA_SET %3s "
+			     "NOTIFY_CMLDS %3s ",
 			     &sen.duration,
 			     onoff_port_state,
 			     onoff_time_status,
-			     onoff_parent_data_set);
-		if (cnt != 4) {
-			fprintf(stderr, "%s SET needs 4 values\n",
+			     onoff_parent_data_set,
+			     onoff_cmlds);
+		if (cnt < 1) {
+			fprintf(stderr, "%s SET needs at least one value\n",
 				idtab[index].name);
 			break;
 		}
@@ -324,6 +328,9 @@ static void do_set_action(struct pmc *pmc, int action, int index, char *str)
 		if (!strcasecmp(onoff_parent_data_set, "on")) {
 			event_bitmask_set(sen.bitmask, NOTIFY_PARENT_DATA_SET,
 					  TRUE);
+		}
+		if (!strcasecmp(onoff_cmlds, "on")) {
+			event_bitmask_set(sen.bitmask, NOTIFY_CMLDS, TRUE);
 		}
 		pmc_send_set_action(pmc, code, &sen, sizeof(sen));
 		break;
@@ -488,9 +495,9 @@ struct pmc {
 };
 
 struct pmc *pmc_create(struct config *cfg, enum transport_type transport_type,
-		       const char *iface_name, UInteger8 boundary_hops,
-		       UInteger8 domain_number, UInteger8 transport_specific,
-		       int zero_datalen)
+		       const char *iface_name, const char *remote_address,
+		       UInteger8 boundary_hops, UInteger8 domain_number,
+		       UInteger8 transport_specific, int zero_datalen)
 {
 	struct pmc *pmc;
 	UInteger32 proc_id;
@@ -524,7 +531,7 @@ struct pmc *pmc_create(struct config *cfg, enum transport_type transport_type,
 		goto failed;
 	}
 
-	pmc->iface = interface_create(iface_name);
+	pmc->iface = interface_create(iface_name, remote_address);
 	if (!pmc->iface) {
 		pr_err("failed to create interface");
 		goto failed;

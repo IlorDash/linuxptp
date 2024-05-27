@@ -5,6 +5,7 @@
  * @note SPDX-License-Identifier: GPL-2.0+
  */
 #include <stdlib.h>
+#include <string.h>
 #include "interface.h"
 
 #define HWTSTAMP_FILTER_PTP_V2_XX_EVENT 0x1240
@@ -13,12 +14,13 @@ struct interface {
 	STAILQ_ENTRY(interface) list;
 	char name[MAX_IFNAME_SIZE + 1];
 	char ts_label[MAX_IFNAME_SIZE + 1];
+	char remote[MAX_IFNAME_SIZE + 1];
 	struct sk_ts_info ts_info;
 	struct sk_if_info if_info;
 	int vclock;
 };
 
-struct interface *interface_create(const char *name)
+struct interface *interface_create(const char *name, const char *remote)
 {
 	struct interface *iface;
 
@@ -28,6 +30,9 @@ struct interface *interface_create(const char *name)
 	}
 	strncpy(iface->name, name, MAX_IFNAME_SIZE);
 	strncpy(iface->ts_label, name, MAX_IFNAME_SIZE);
+	if (remote) {
+		strncpy(iface->remote, remote, MAX_IFNAME_SIZE);
+	}
 	iface->vclock = -1;
 
 	return iface;
@@ -58,7 +63,6 @@ bool interface_ifinfo_valid(struct interface *iface)
        return iface->if_info.valid ? true : false;
 }
 
-
 const char *interface_name(struct interface *iface)
 {
 	return iface->name;
@@ -67,6 +71,11 @@ const char *interface_name(struct interface *iface)
 int interface_phc_index(struct interface *iface)
 {
 	return iface->ts_info.phc_index;
+}
+
+const char *interface_remote(struct interface *iface)
+{
+	return iface->remote;
 }
 
 void interface_set_label(struct interface *iface, const char *label)
