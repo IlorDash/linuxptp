@@ -511,7 +511,7 @@ int rtnl_iface_has_vclock(const char *device, int phc_index)
 
 	len = genl_send_msg(fd, gf_id, ETHTOOL_MSG_PHC_VCLOCKS_GET,
 			    ETHTOOL_GENL_VERSION,
-			    NLA_F_NESTED | ETHTOOL_A_PHC_VCLOCKS_HEADER, 
+			    NLA_F_NESTED | ETHTOOL_A_PHC_VCLOCKS_HEADER,
 			    &req, sizeof(req));
 
 	if (len < 0) {

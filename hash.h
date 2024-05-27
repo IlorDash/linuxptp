@@ -55,5 +55,3 @@ int hash_insert(struct hash *ht, const char* key, void *data);
 void *hash_lookup(struct hash *ht, const char* key);
 
 #endif
-
-
