@@ -592,7 +592,10 @@ int sk_ts_get_rx_filter(enum timestamp_type type, enum transport_type transport,
 					   HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ :
 					   HWTSTAMP_FILTER_PTP_V2_L2_SYNC;
 		break;
-	default:
+	case TRANS_DEVICENET:
+	case TRANS_CONTROLNET:
+	case TRANS_PROFINET:
+	case TRANS_UDS:
 		return -1;
 	}
 
