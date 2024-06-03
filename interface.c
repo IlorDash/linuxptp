@@ -6,6 +6,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <linux/net_tstamp.h>
 #include "interface.h"
 
 #define HWTSTAMP_FILTER_PTP_V2_XX_EVENT 0x1240
