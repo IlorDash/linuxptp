@@ -5,6 +5,7 @@
  * @note SPDX-License-Identifier: GPL-2.0+
  */
 #include <stdlib.h>
+#include <linux/net_tstamp.h>
 #include "interface.h"
 
 #define HWTSTAMP_FILTER_PTP_V2_L2_L4_EVENT                                     \
